@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>움짤 메이커 — GIF · WebP · PSD</title>
+<style>
+:root, body[data-theme=dark]{
+  --bg:#14151a; --panel:#1c1e25; --panel2:#23262f; --line:#2f333e; --text:#e8e9ee; --text2:#cfd3dc; --muted:#9097a6;
+  --input:#111318; --thumb:#0d0e12; --chk1:#1a1b20; --chk2:#14151a; --hover:#2a1d17; --hl:#ffffff14;
+  --accent:#ff7a45; --accent2:#ffb347; --ok:#4fd1a5; --err:#ff6b6b; --r:10px;
+}
+body[data-theme=mid]{
+  --bg:#3d3d3d; --panel:#4a4a4a; --panel2:#545454; --line:#626262; --text:#f0f0f0; --text2:#e2e2e2; --muted:#bcbcbc;
+  --input:#383838; --thumb:#333; --chk1:#5a5a5a; --chk2:#4f4f4f; --hover:#5a4a40; --hl:#ffffff1c;
+  --accent:#ff8a55; --accent2:#ffc070; --ok:#7ee0bd; --err:#ff8c8c;
+}
+body[data-theme=light]{
+  --bg:#eceef2; --panel:#ffffff; --panel2:#f5f6f8; --line:#d7dae0; --text:#1d2027; --text2:#2e333d; --muted:#6a7180;
+  --input:#ffffff; --thumb:#e6e8ec; --chk1:#e3e5e9; --chk2:#f4f5f7; --hover:#fff1ea; --hl:#0000000d;
+  --accent:#f26a2e; --accent2:#c9561c; --ok:#14966b; --err:#d63c3c;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:14px/1.45 "Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;transition:background .2s}
+button,input,select{font:inherit;color:inherit}
+header{display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+header h1{font-size:17px;margin:0;letter-spacing:-.3px}
+header h1 b{color:var(--accent)}
+header .sub{color:var(--muted);font-size:12px}
+header .grow{flex:1}
+.credit{font-size:11px;color:var(--muted);text-align:right;line-height:1.35}
+.credit b{color:var(--text2);font-weight:600}
+.themes{display:flex;background:var(--input);border:1px solid var(--line);border-radius:20px;padding:2px}
+.themes button{border:none;background:none;cursor:pointer;width:30px;height:26px;border-radius:14px;font-size:14px;line-height:1;opacity:.55}
+.themes button.on{background:var(--panel2);opacity:1;box-shadow:0 0 0 1px var(--line)}
+main{display:grid;grid-template-columns:370px 1fr 340px;gap:12px;padding:12px;height:calc(100% - 54px)}
+@media (max-width:1100px){main{grid-template-columns:1fr;height:auto}}
+.col{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.col h2{font-size:13px;margin:0;padding:9px 12px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:6px;color:var(--text2)}
+.col h2 .grow{flex:1}
+.scroll{overflow:auto;flex:1;min-height:0}
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#1a0d05;font-weight:700}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.sm{padding:3px 7px;font-size:12px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+input[type=number],input[type=text],select{background:var(--input);border:1px solid var(--line);border-radius:6px;padding:5px 7px;min-width:0}
+input[type=number]{width:76px}
+input[type=color]{width:38px;height:28px;padding:0;border:1px solid var(--line);border-radius:6px;background:none}
+input[type=range],input[type=checkbox]{accent-color:var(--accent)}
+label.chk{display:flex;align-items:center;gap:6px;cursor:pointer}
+
+#drop{margin:10px;border:1.5px dashed var(--line);border-radius:var(--r);padding:14px;text-align:center;color:var(--muted);cursor:pointer;transition:.15s;font-size:13px}
+#drop.over,#drop:hover{border-color:var(--accent);color:var(--text);background:var(--hover)}
+#list{padding:0 10px 10px;display:flex;flex-direction:column;gap:8px}
+.card{display:grid;grid-template-columns:76px 1fr;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:8px;position:relative}
+.card.sel{border-color:var(--accent)}
+.card.dragging{opacity:.4}
+.card.dropT{box-shadow:0 -3px 0 var(--accent)}
+.card.dropB{box-shadow:0 3px 0 var(--accent)}
+.card .th{width:76px;height:auto;min-height:76px;align-self:stretch;border-radius:6px;background:var(--thumb) center/contain no-repeat;cursor:grab;position:relative}
+.card .th span{position:absolute;left:3px;top:3px;background:#000a;color:#fff;font-size:11px;padding:0 5px;border-radius:4px}
+.card .body{min-width:0;display:flex;flex-direction:column;gap:5px}
+.card .tools{display:flex;gap:2px;justify-content:flex-end;margin:-2px -2px 0 0}
+.card .tools button{background:none;border:1px solid transparent;color:var(--text2);cursor:pointer;width:28px;height:24px;border-radius:5px;font-size:14px;line-height:1;padding:0}
+.card .tools button:hover{background:var(--hl);border-color:var(--line);color:var(--text)}
+.card .tools button.del:hover{color:var(--err)}
+.card .nm{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .row{display:flex;gap:4px;align-items:center;font-size:12px;color:var(--muted);min-width:0}
+.card .row select{padding:3px 2px;flex:1 1 auto;min-width:0;width:0}
+.card .row .sep{width:4px}
+input.secs{width:44px!important;padding:3px 4px!important;text-align:right;-moz-appearance:textfield}
+input.secs::-webkit-outer-spin-button,input.secs::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.bulk{padding:9px 10px;border-top:1px solid var(--line);display:grid;gap:6px;font-size:12px;color:var(--muted)}
+.bulk .row{display:flex;gap:6px;align-items:center}
+.bulk select{flex:1}
+.bulk input[type=number]{width:62px;padding:3px 5px}
+
+#stage{flex:1;min-height:300px;display:flex;align-items:center;justify-content:center;padding:14px;background-color:var(--chk2);
+  background-image:linear-gradient(45deg,var(--chk1) 25%,transparent 25%),linear-gradient(-45deg,var(--chk1) 25%,transparent 25%),linear-gradient(45deg,transparent 75%,var(--chk1) 75%),linear-gradient(-45deg,transparent 75%,var(--chk1) 75%);
+  background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0}
+#pv{max-width:100%;max-height:100%;box-shadow:0 6px 30px #0006}
+.empty{color:var(--muted);text-align:center;line-height:1.7}
+.ctrl{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line)}
+.ctrl input[type=range]{flex:1}
+#info{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;font-weight:400}
+#result{border-top:1px solid var(--line);padding:10px 14px;display:none;gap:12px;align-items:center}
+#result img{max-height:90px;max-width:160px;border-radius:6px;background:var(--thumb)}
+#result .meta{font-size:12px;color:var(--muted);line-height:1.5}
+
+.sec{padding:12px 14px;border-bottom:1px solid var(--line)}
+.sec h3{margin:0 0 9px;font-size:12.5px;color:var(--accent2);letter-spacing:.2px}
+.f{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:12.5px}
+.f > .lb{width:86px;color:var(--muted);flex:none}
+.f .grow{flex:1}
+.seg{display:flex;background:var(--input);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:none;background:none;padding:5px 10px;cursor:pointer;color:var(--muted)}
+.seg button.on{background:var(--accent);color:#1a0d05;font-weight:700}
+.grid9{display:grid;grid-template-columns:repeat(3,22px);gap:3px}
+.grid9 button{width:22px;height:22px;border-radius:4px;border:1px solid var(--line);background:var(--input);cursor:pointer;padding:0}
+.grid9 button.on{background:var(--accent);border-color:var(--accent)}
+.presets{display:flex;flex-wrap:wrap;gap:4px}
+.hint{font-size:11.5px;color:var(--muted);margin-top:4px}
+#logoBox{display:flex;gap:8px;align-items:center}
+#logoThumb{width:44px;height:44px;border-radius:6px;border:1px solid var(--line);background:var(--thumb) center/contain no-repeat}
+.exp{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.exp .btn{padding:9px}
+.exp .full{grid-column:1/-1}
+.prog{height:6px;background:var(--input);border-radius:4px;overflow:hidden;margin-top:8px;display:none}
+.prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .1s}
+#status{font-size:12px;color:var(--muted);min-height:18px;margin-top:6px}
+#status.err{color:var(--err)} #status.ok{color:var(--ok)}
+.limitbox{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:8px 0}
+.limitbox .chks{display:grid;gap:4px;font-size:12px;margin-top:6px}
+.hidden{display:none!important}
+</style>
+</head>
+<body data-theme="dark">
+<header>
+  <h1>움짤 <b>메이커</b></h1>
+  <span class="sub">이미지 여러 장 → GIF · 애니메이션 WebP · 레이어 PSD</span>
+  <span class="grow"></span>
+  <div class="credit">제작 <b>완성형5번유형</b><br>v1.2.0 · 최종 업데이트 2026-11-07</div>
+  <div class="themes" id="themes" title="화면 테마">
+    <button data-t="light" title="밝게">☀️</button><button data-t="mid" title="중간 (포토샵 스타일)">🌓</button><button data-t="dark" title="어둡게">🌙</button>
+  </div>
+</header>
+<main>
+  <!-- LEFT -->
+  <section class="col">
+    <h2>장면 <span id="cnt" style="color:var(--muted);font-weight:400"></span><span class="grow"></span>
+      <button class="btn sm" id="openBtn" title="이미지 · GIF · WebP · PSD · 프로젝트 파일 열기">📂 열기</button>
+      <button class="btn sm" id="sortName" title="파일 이름순 정렬">이름순</button>
+      <button class="btn sm" id="clearAll">모두 삭제</button></h2>
+    <div class="scroll" id="leftScroll">
+      <div id="drop">이미지를 끌어다 놓거나 <b>클릭</b>해서 추가<br><small>GIF·WebP는 프레임별로, PSD는 레이어별로, 프로젝트(.json)는 통째로 열립니다</small></div>
+      <input type="file" id="fileIn" accept="image/*,.psd,.json,application/json" multiple hidden>
+      <input type="file" id="cardIn" accept="image/*,.psd" multiple hidden>
+      <div id="list"></div>
+    </div>
+    <div class="bulk">
+      <div class="row"><b style="color:var(--text2)">모두에 일괄 적용</b></div>
+      <div class="row">유지 <input type="number" class="secs" id="bHold" value="1" min="0.02" step="0.1">초
+        <span style="width:8px"></span>전환 <input type="number" class="secs" id="bTms" value="0.4" min="0" step="0.1">초</div>
+      <div class="row"><select id="bTrans"></select><button class="btn sm" id="bApply">적용</button></div>
+      <div class="row">짧은 장면 정리: <input type="number" class="secs" id="shortMs" value="0.06" min="0" step="0.01">초 이하 <button class="btn sm" id="shortDel" title="GIF를 불러왔을 때 전환용 중간 프레임을 지우는 데 유용">삭제</button></div>
+    </div>
+  </section>
+
+  <!-- CENTER -->
+  <section class="col">
+    <h2>미리보기<span class="grow"></span><span id="info"></span></h2>
+    <div id="stage"><canvas id="pv" class="hidden"></canvas>
+      <div class="empty" id="emptyMsg">왼쪽에 이미지를 추가하세요<br><small>완성된 GIF · WebP · PSD · 프로젝트 파일을 여기 끌어다 놓아도 됩니다</small></div></div>
+    <div class="ctrl">
+      <button class="btn" id="playBtn">⏸ 일시정지</button>
+      <input type="range" id="scrub" min="0" max="1000" value="0">
+      <span id="tnow" style="font-size:12px;color:var(--muted);width:92px;text-align:right;font-variant-numeric:tabular-nums">0.00초</span>
+    </div>
+    <div id="result"><img id="resImg" alt=""><div class="meta" id="resMeta"></div><span style="flex:1"></span><button class="btn" id="resSave">다시 저장</button></div>
+  </section>
+
+  <!-- RIGHT -->
+  <section class="col">
+    <h2>설정</h2>
+    <div class="scroll">
+      <div class="sec">
+        <h3>재생 속도</h3>
+        <div class="f"><span class="lb">전체 속도</span><input type="range" class="grow" id="speed" min="0.25" max="4" step="0.05" value="1"><span id="speedV" style="width:44px;text-align:right">1.00×</span></div>
+        <div class="hint" style="margin:-2px 0 8px">모든 장면의 유지·전환 시간을 한꺼번에 빠르게/느리게 합니다. 예) 1초 장면 + 2× → 0.5초로 저장</div>
+        <div class="f"><span class="lb">전환 프레임</span><input type="number" id="fps" min="5" max="50" value="25"> fps <span class="hint" style="margin:0">(높을수록 부드럽고 용량↑)</span></div>
+        <div class="f"><span class="lb">반복</span><input type="number" id="loop" min="0" max="999" value="0"><span class="hint" style="margin:0">0 = 무한 반복</span></div>
+        <label class="chk f"><input type="checkbox" id="loopTrans" checked> 마지막 → 첫 장면도 전환 효과 적용</label>
+      </div>
+
+      <div class="sec">
+        <h3>출력 크기</h3>
+        <div class="f"><div class="seg" id="sizeMode"><button data-v="original" class="on">원본 크기</button><button data-v="custom">지정 크기</button></div></div>
+        <div id="origBox">
+          <div class="f"><span class="lb">배율</span><input type="number" id="scale" min="5" max="400" value="100"> %</div>
+          <div class="hint">첫 번째 장면 크기가 기준입니다. 크기가 다른 이미지는 아래 맞춤 방식으로 배치됩니다.</div>
+        </div>
+        <div id="custBox" class="hidden">
+          <div class="f"><span class="lb">가로 × 세로</span><input type="number" id="outW" min="1" max="4096" value="1080"> × <input type="number" id="outH" min="1" max="4096" value="1080"></div>
+          <div class="presets" style="margin-left:94px">
+            <button class="btn sm" data-p="1080x1080">1:1</button>
+            <button class="btn sm" data-p="1080x1350">4:5</button>
+            <button class="btn sm" data-p="1280x720">16:9</button>
+            <button class="btn sm" data-p="720x1280">9:16</button>
+            <button class="btn sm" data-p="512x512">512</button>
+            <button class="btn sm" data-p="swap">⇄ 뒤집기</button>
+          </div>
+        </div>
+        <div class="f" style="margin-top:10px"><span class="lb">맞춤 방식</span>
+          <select id="fit" class="grow">
+            <option value="cover">잘라서 꽉 채우기 (크롭)</option>
+            <option value="contain">전체 보이기 (여백)</option>
+            <option value="stretch">늘려서 채우기</option>
+          </select></div>
+        <div class="f"><span class="lb">기준 위치</span><div class="grid9" id="anchor"></div><span class="hint" style="margin:0 0 0 6px">크롭/여백 시<br>어느 쪽을 맞출지</span></div>
+        <div class="f"><span class="lb">배경색</span><input type="color" id="bg" value="#ffffff"><span class="hint" style="margin:0">여백·전환 시 보이는 색</span></div>
+        <div class="hint" id="sizeInfo"></div>
+      </div>
+
+      <div class="sec">
+        <h3>고정 로고 (최상단)</h3>
+        <div id="logoBox">
+          <div id="logoThumb"></div>
+          <button class="btn sm" id="logoPick">로고 선택</button>
+          <button class="btn sm hidden" id="logoDel">삭제</button>
+          <input type="file" id="logoIn" accept="image/*" hidden>
+        </div>
+        <div id="logoOpts" class="hidden">
+          <div class="f"><span class="lb">위치</span><div class="grid9" id="logoPos"></div></div>
+          <div class="f"><span class="lb">크기</span><input type="range" class="grow" id="logoSize" min="2" max="100" value="18"><span id="logoSizeV" style="width:40px;text-align:right">18%</span></div>
+          <div class="f"><span class="lb">여백</span><input type="range" class="grow" id="logoMargin" min="0" max="20" step="0.5" value="3"><span id="logoMarginV" style="width:40px;text-align:right">3%</span></div>
+          <div class="f"><span class="lb">불투명도</span><input type="range" class="grow" id="logoOp" min="5" max="100" value="100"><span id="logoOpV" style="width:40px;text-align:right">100%</span></div>
+          <div class="f"><span class="lb">미세 이동</span>X <input type="number" id="logoX" value="0" step="0.5" style="width:60px"> Y <input type="number" id="logoY" value="0" step="0.5" style="width:60px">%</div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h3>내보내기</h3>
+        <div class="f"><span class="lb">파일 이름</span><input type="text" id="baseName" class="grow" value="animation"></div>
+        <div class="f"><span class="lb">WebP 화질</span><input type="range" class="grow" id="webpQ" min="10" max="100" value="90"><span id="webpQV" style="width:40px;text-align:right">90</span></div>
+        <div class="limitbox">
+          <div class="f" style="margin:0"><span class="lb">용량 제한</span>
+            <select id="limit" class="grow">
+              <option value="0">제한 없음</option><option value="1">1 MB 이하</option><option value="2">2 MB 이하</option>
+              <option value="3">3 MB 이하</option><option value="5">5 MB 이하</option><option value="8">8 MB 이하</option>
+              <option value="10">10 MB 이하</option><option value="15">15 MB 이하</option><option value="20">20 MB 이하</option>
+              <option value="custom">직접 입력…</option>
+            </select></div>
+          <div class="f hidden" id="limitCustomRow"><span class="lb"></span><input type="number" id="limitCustom" value="4" min="0.1" step="0.1"> MB 이하</div>
+          <div id="limitOpts" class="hidden">
+            <div class="hint" style="margin-top:6px">넘치면 아래에서 허용한 방법으로 자동으로 다시 만들어 맞춥니다 (GIF·WebP).</div>
+            <div class="chks">
+              <label class="chk"><input type="checkbox" id="allowQ" checked> 화질·색상 수 낮추기</label>
+              <label class="chk"><input type="checkbox" id="allowFps" checked> 전환 프레임 수 줄이기</label>
+              <label class="chk"><input type="checkbox" id="allowScale" checked> 해상도 줄이기</label>
+            </div>
+          </div>
+        </div>
+        <label class="chk f"><input type="checkbox" id="psdAll"> PSD에 전환 중간 프레임까지 모두 레이어로 넣기</label>
+        <div class="exp">
+          <button class="btn primary full" id="expGif">GIF 저장</button>
+          <button class="btn" id="expWebp">WebP 저장</button>
+          <button class="btn" id="expPsd">레이어 PSD 저장</button>
+          <button class="btn full" id="expProj" title="이미지 원본과 모든 설정을 담은 파일 — 나중에 열어서 그대로 이어서 편집">💾 프로젝트 저장 (나중에 이어서 편집)</button>
+        </div>
+        <div class="prog" id="prog"><i></i></div>
+        <div id="status"></div>
+        <div class="hint">· 시간은 모두 초 단위입니다 (0.1 = 0.1초).<br>· GIF는 프레임당 256색 제한이 있어 사진은 WebP가 더 깨끗합니다.<br>
+          · 나중에 효과·속도까지 다시 고치려면 <b>프로젝트</b> 또는 <b>PSD</b>로 저장해 두세요. GIF·WebP를 다시 열면 프레임 단위로만 불러와집니다.</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+/* gifenc v1.0.3 — MIT License (c) Matt DesLauriers — https://github.com/mattdesl/gifenc */
+window.gifenc=(function(){var X={signature:"GIF",version:"89a",trailer:59,extensionIntroducer:33,applicationExtensionLabel:255,graphicControlExtensionLabel:249,imageSeparator:44,signatureSize:3,versionSize:3,globalColorTableFlagMask:128,colorResolutionMask:112,sortFlagMask:8,globalColorTableSizeMask:7,applicationIdentifierSize:8,applicationAuthCodeSize:3,disposalMethodMask:28,userInputFlagMask:2,transparentColorFlagMask:1,localColorTableFlagMask:128,interlaceFlagMask:64,idSortFlagMask:32,localColorTableSizeMask:7};function F(t=256){let e=0,s=new Uint8Array(t);return{get buffer(){return s.buffer},reset(){e=0},bytesView(){return s.subarray(0,e)},bytes(){return s.slice(0,e)},writeByte(r){n(e+1),s[e]=r,e++},writeBytes(r,o=0,i=r.length){n(e+i);for(let c=0;c<i;c++)s[e++]=r[c+o]},writeBytesView(r,o=0,i=r.byteLength){n(e+i),s.set(r.subarray(o,o+i),e),e+=i}};function n(r){var o=s.length;if(o>=r)return;var i=1024*1024;r=Math.max(r,o*(o<i?2:1.125)>>>0),o!=0&&(r=Math.max(r,256));let c=s;s=new Uint8Array(r),e>0&&s.set(c.subarray(0,e),0)}}var O=12,J=5003,lt=[0,1,3,7,15,31,63,127,255,511,1023,2047,4095,8191,16383,32767,65535];function at(t,e,s,n,r=F(512),o=new Uint8Array(256),i=new Int32Array(J),c=new Int32Array(J)){let x=i.length,a=Math.max(2,n);o.fill(0),c.fill(0),i.fill(-1);let l=0,f=0,g=a+1,h=g,b=!1,w=h,_=(1<<w)-1,u=1<<g-1,k=u+1,B=u+2,p=0,A=s[0],z=0;for(let y=x;y<65536;y*=2)++z;z=8-z,r.writeByte(a),I(u);let d=s.length;for(let y=1;y<d;y++){t:{let m=s[y],v=(m<<O)+A,M=m<<z^A;if(i[M]===v){A=c[M];break t}let V=M===0?1:x-M;for(;i[M]>=0;)if(M-=V,M<0&&(M+=x),i[M]===v){A=c[M];break t}I(A),A=m,B<1<<O?(c[M]=B++,i[M]=v):(i.fill(-1),B=u+2,b=!0,I(u))}}return I(A),I(k),r.writeByte(0),r.bytesView();function I(y){for(l&=lt[f],f>0?l|=y<<f:l=y,f+=w;f>=8;)o[p++]=l&255,p>=254&&(r.writeByte(p),r.writeBytesView(o,0,p),p=0),l>>=8,f-=8;if((B>_||b)&&(b?(w=h,_=(1<<w)-1,b=!1):(++w,_=w===O?1<<w:(1<<w)-1)),y==k){for(;f>0;)o[p++]=l&255,p>=254&&(r.writeByte(p),r.writeBytesView(o,0,p),p=0),l>>=8,f-=8;p>0&&(r.writeByte(p),r.writeBytesView(o,0,p),p=0)}}}var $=at;function D(t,e,s){return t<<8&63488|e<<2&992|s>>3}function G(t,e,s,n){return t>>4|e&240|(s&240)<<4|(n&240)<<8}function j(t,e,s){return t>>4<<8|e&240|s>>4}function R(t,e,s){return t<e?e:t>s?s:t}function T(t){return t*t}function tt(t,e,s){var n=0,r=1e100;let o=t[e],i=o.cnt,c=o.ac,x=o.rc,a=o.gc,l=o.bc;for(var f=o.fw;f!=0;f=t[f].fw){let h=t[f],b=h.cnt,w=i*b/(i+b);if(!(w>=r)){var g=0;s&&(g+=w*T(h.ac-c),g>=r)||(g+=w*T(h.rc-x),!(g>=r)&&(g+=w*T(h.gc-a),!(g>=r)&&(g+=w*T(h.bc-l),!(g>=r)&&(r=g,n=f))))}}o.err=r,o.nn=n}function Q(){return{ac:0,rc:0,gc:0,bc:0,cnt:0,nn:0,fw:0,bk:0,tm:0,mtm:0,err:0}}function ut(t,e){let s=e==="rgb444"?4096:65536,n=new Array(s),r=t.length;if(e==="rgba4444")for(let o=0;o<r;++o){let i=t[o],c=i>>24&255,x=i>>16&255,a=i>>8&255,l=i&255,f=G(l,a,x,c),g=f in n?n[f]:n[f]=Q();g.rc+=l,g.gc+=a,g.bc+=x,g.ac+=c,g.cnt++}else if(e==="rgb444")for(let o=0;o<r;++o){let i=t[o],c=i>>16&255,x=i>>8&255,a=i&255,l=j(a,x,c),f=l in n?n[l]:n[l]=Q();f.rc+=a,f.gc+=x,f.bc+=c,f.cnt++}else for(let o=0;o<r;++o){let i=t[o],c=i>>16&255,x=i>>8&255,a=i&255,l=D(a,x,c),f=l in n?n[l]:n[l]=Q();f.rc+=a,f.gc+=x,f.bc+=c,f.cnt++}return n}function H(t,e,s={}){let{format:n="rgb565",clearAlpha:r=!0,clearAlphaColor:o=0,clearAlphaThreshold:i=0,oneBitAlpha:c=!1}=s;if(!t||!t.buffer)throw new Error("quantize() expected RGBA Uint8Array data");if(!(t instanceof Uint8Array)&&!(t instanceof Uint8ClampedArray))throw new Error("quantize() expected RGBA Uint8Array data");let x=new Uint32Array(t.buffer),a=s.useSqrt!==!1,l=n==="rgba4444",f=ut(x,n),g=f.length,h=g-1,b=new Uint32Array(g+1);for(var w=0,u=0;u<g;++u){let C=f[u];if(C!=null){var _=1/C.cnt;l&&(C.ac*=_),C.rc*=_,C.gc*=_,C.bc*=_,f[w++]=C}}T(e)/w<.022&&(a=!1);for(var u=0;u<w-1;++u)f[u].fw=u+1,f[u+1].bk=u,a&&(f[u].cnt=Math.sqrt(f[u].cnt));a&&(f[u].cnt=Math.sqrt(f[u].cnt));var k,B,p;for(u=0;u<w;++u){tt(f,u,!1);var A=f[u].err;for(B=++b[0];B>1&&(p=B>>1,!(f[k=b[p]].err<=A));B=p)b[B]=k;b[B]=u}var z=w-e;for(u=0;u<z;){for(var d;;){var I=b[1];if(d=f[I],d.tm>=d.mtm&&f[d.nn].mtm<=d.tm)break;d.mtm==h?I=b[1]=b[b[0]--]:(tt(f,I,!1),d.tm=u);var A=f[I].err;for(B=1;(p=B+B)<=b[0]&&(p<b[0]&&f[b[p]].err>f[b[p+1]].err&&p++,!(A<=f[k=b[p]].err));B=p)b[B]=k;b[B]=I}var y=f[d.nn],m=d.cnt,v=y.cnt,_=1/(m+v);l&&(d.ac=_*(m*d.ac+v*y.ac)),d.rc=_*(m*d.rc+v*y.rc),d.gc=_*(m*d.gc+v*y.gc),d.bc=_*(m*d.bc+v*y.bc),d.cnt+=y.cnt,d.mtm=++u,f[y.bk].fw=y.fw,f[y.fw].bk=y.bk,y.mtm=h}let M=[];var V=0;for(u=0;;++V){let L=R(Math.round(f[u].rc),0,255),C=R(Math.round(f[u].gc),0,255),Y=R(Math.round(f[u].bc),0,255),E=255;if(l){if(E=R(Math.round(f[u].ac),0,255),c){let st=typeof c=="number"?c:127;E=E<=st?0:255}r&&E<=i&&(L=C=Y=o,E=0)}let K=l?[L,C,Y,E]:[L,C,Y];if(xt(M,K)||M.push(K),(u=f[u].fw)==0)break}return M}function xt(t,e){for(let s=0;s<t.length;s++){let n=t[s],r=n[0]===e[0]&&n[1]===e[1]&&n[2]===e[2],o=n.length>=4&&e.length>=4?n[3]===e[3]:!0;if(r&&o)return!0}return!1}function U(t,e){var s=0,n;for(n=0;n<t.length;n++){let r=t[n]-e[n];s+=r*r}return s}function P(t,e){return e>1?Math.round(t/e)*e:t}function et(t,{roundRGB:e=5,roundAlpha:s=10,oneBitAlpha:n=null}={}){let r=new Uint32Array(t.buffer);for(let o=0;o<r.length;o++){let i=r[o],c=i>>24&255,x=i>>16&255,a=i>>8&255,l=i&255;if(c=P(c,s),n){let f=typeof n=="number"?n:127;c=c<=f?0:255}l=P(l,e),a=P(a,e),x=P(x,e),r[o]=c<<24|x<<16|a<<8|l<<0}}function nt(t,e,s="rgb565"){if(!t||!t.buffer)throw new Error("quantize() expected RGBA Uint8Array data");if(!(t instanceof Uint8Array)&&!(t instanceof Uint8ClampedArray))throw new Error("quantize() expected RGBA Uint8Array data");if(e.length>256)throw new Error("applyPalette() only works with 256 colors or less");let n=new Uint32Array(t.buffer),r=n.length,o=s==="rgb444"?4096:65536,i=new Uint8Array(r),c=new Array(o),x=s==="rgba4444";if(s==="rgba4444")for(let a=0;a<r;a++){let l=n[a],f=l>>24&255,g=l>>16&255,h=l>>8&255,b=l&255,w=G(b,h,g,f),_=w in c?c[w]:c[w]=gt(b,h,g,f,e);i[a]=_}else{let a=s==="rgb444"?j:D;for(let l=0;l<r;l++){let f=n[l],g=f>>16&255,h=f>>8&255,b=f&255,w=a(b,h,g),_=w in c?c[w]:c[w]=bt(b,h,g,e);i[l]=_}}return i}function gt(t,e,s,n,r){let o=0,i=1e100;for(let c=0;c<r.length;c++){let x=r[c],a=x[3],l=q(a-n);if(l>i)continue;let f=x[0];if(l+=q(f-t),l>i)continue;let g=x[1];if(l+=q(g-e),l>i)continue;let h=x[2];l+=q(h-s),!(l>i)&&(i=l,o=c)}return o}function bt(t,e,s,n){let r=0,o=1e100;for(let i=0;i<n.length;i++){let c=n[i],x=c[0],a=q(x-t);if(a>o)continue;let l=c[1];if(a+=q(l-e),a>o)continue;let f=c[2];a+=q(f-s),!(a>o)&&(o=a,r=i)}return r}function rt(t,e,s=5){if(!t.length||!e.length)return;let n=t.map(i=>i.slice(0,3)),r=s*s,o=t[0].length;for(let i=0;i<e.length;i++){let c=e[i];c.length<o?c=[c[0],c[1],c[2],255]:c.length>o?c=c.slice(0,3):c=c.slice();let x=N(n,c.slice(0,3),U),a=x[0],l=x[1];l>0&&l<=r&&(t[a]=c)}}function q(t){return t*t}function W(t,e,s=U){let n=Infinity,r=-1;for(let o=0;o<t.length;o++){let i=t[o],c=s(e,i);c<n&&(n=c,r=o)}return r}function N(t,e,s=U){let n=Infinity,r=-1;for(let o=0;o<t.length;o++){let i=t[o],c=s(e,i);c<n&&(n=c,r=o)}return[r,n]}function ot(t,e,s=U){return t[W(t,e,s)]}function ct(t={}){let{initialCapacity:e=4096,auto:s=!0}=t,n=F(e),r=5003,o=new Uint8Array(256),i=new Int32Array(r),c=new Int32Array(r),x=!1;return{reset(){n.reset(),x=!1},finish(){n.writeByte(X.trailer)},bytes(){return n.bytes()},bytesView(){return n.bytesView()},get buffer(){return n.buffer},get stream(){return n},writeHeader:a,writeFrame(l,f,g,h={}){let{transparent:b=!1,transparentIndex:w=0,delay:_=0,palette:u=null,repeat:k=0,colorDepth:B=8,dispose:p=-1}=h,A=!1;if(s?x||(A=!0,a(),x=!0):A=Boolean(h.first),f=Math.max(0,Math.floor(f)),g=Math.max(0,Math.floor(g)),A){if(!u)throw new Error("First frame must include a { palette } option");pt(n,f,g,u,B),it(n,u),k>=0&&dt(n,k)}let z=Math.round(_/10);wt(n,p,z,b,w);let d=Boolean(u)&&!A;ht(n,f,g,d?u:null),d&&it(n,u),yt(n,l,f,g,B,o,i,c)}};function a(){ft(n,"GIF89a")}}function wt(t,e,s,n,r){t.writeByte(33),t.writeByte(249),t.writeByte(4),r<0&&(r=0,n=!1);var o,i;n?(o=1,i=2):(o=0,i=0),e>=0&&(i=e&7),i<<=2;let c=0;t.writeByte(0|i|c|o),S(t,s),t.writeByte(r||0),t.writeByte(0)}function pt(t,e,s,n,r=8){let o=1,i=0,c=Z(n.length)-1,x=o<<7|r-1<<4|i<<3|c,a=0,l=0;S(t,e),S(t,s),t.writeBytes([x,a,l])}function dt(t,e){t.writeByte(33),t.writeByte(255),t.writeByte(11),ft(t,"NETSCAPE2.0"),t.writeByte(3),t.writeByte(1),S(t,e),t.writeByte(0)}function it(t,e){let s=1<<Z(e.length);for(let n=0;n<s;n++){let r=[0,0,0];n<e.length&&(r=e[n]),t.writeByte(r[0]),t.writeByte(r[1]),t.writeByte(r[2])}}function ht(t,e,s,n){if(t.writeByte(44),S(t,0),S(t,0),S(t,e),S(t,s),n){let r=0,o=0,i=Z(n.length)-1;t.writeByte(128|r|o|0|i)}else t.writeByte(0)}function yt(t,e,s,n,r=8,o,i,c){$(s,n,e,r,t,o,i,c)}function S(t,e){t.writeByte(e&255),t.writeByte(e>>8&255)}function ft(t,e){for(var s=0;s<e.length;s++)t.writeByte(e.charCodeAt(s))}function Z(t){return Math.max(Math.ceil(Math.log2(t)),1)}var Bt=ct;return {GIFEncoder:ct,applyPalette:nt,default:Bt,nearestColor:ot,nearestColorIndex:W,nearestColorIndexWithDistance:N,prequantize:et,quantize:H,snapColorsToPalette:rt};})();
+</script>
+<script>
+(() => {
+'use strict';
+const VERSION = '1.2.0';
+const $ = s => document.querySelector(s);
+const ANCH = {tl:[0,0],tc:[.5,0],tr:[1,0],ml:[0,.5],mc:[.5,.5],mr:[1,.5],bl:[0,1],bc:[.5,1],br:[1,1]};
+const TRANS = [
+  ['none','없음'],['fade','페이드'],['dipblack','검정 페이드'],['dipwhite','흰색 페이드'],['flash','플래시'],
+  ['slide-l','슬라이드 ←'],['slide-r','슬라이드 →'],['slide-u','슬라이드 ↑'],['slide-d','슬라이드 ↓'],
+  ['push-l','밀어내기 ←'],['push-r','밀어내기 →'],['push-u','밀어내기 ↑'],['push-d','밀어내기 ↓'],
+  ['wipe-l','와이프 ←'],['wipe-r','와이프 →'],['wipe-u','와이프 ↑'],['wipe-d','와이프 ↓'],
+  ['zoom-in','줌 인'],['zoom-out','줌 아웃'],['iris','원형 열기']
+];
+const S = {
+  items:[], logo:null, speed:1, fps:25, loop:0, loopTrans:true,
+  sizeMode:'original', scale:100, outW:1080, outH:1080, fit:'cover', anchor:'mc', bg:'#ffffff',
+  logoPos:'br', logoSize:18, logoMargin:3, logoOp:100, logoX:0, logoY:0,
+  webpQ:90, psdAll:false, baseName:'animation',
+  limit:'0', limitCustom:4, allowQ:true, allowFps:true, allowScale:true
+};
+const SETTING_KEYS = ['speed','fps','loop','loopTrans','sizeMode','scale','outW','outH','fit','anchor','bg','logoPos','logoSize','logoMargin','logoOp','logoX','logoY','webpQ','psdAll','baseName','limit','limitCustom','allowQ','allowFps','allowScale'];
+let uid = 0;
+
+/* ---------- helpers ---------- */
+const mk = (w,h) => { const c=document.createElement('canvas'); c.width=w; c.height=h; return c; };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+const num = (el, d) => { const v = parseFloat(el.value); return isFinite(v) ? v : d; };
+const ease = p => p < .5 ? 4*p*p*p : 1 - Math.pow(-2*p+2, 3)/2;
+const yieldUI = () => new Promise(r => setTimeout(r, 0));
+const sec = ms => String(+(ms/1000).toFixed(3));
+const fmtSize = b => b >= 1048576 ? (b/1048576).toFixed(2)+' MB' : (b/1024).toFixed(1)+' KB';
+const toBlob = (cv, type, q) => new Promise(r => cv.toBlob(r, type, q));
+const extOf = n => (n.match(/\.([^.]+)$/) || [,''])[1].toLowerCase();
+const baseOf = n => n.replace(/\.[^.]+$/, '');
+function transOptions(sel){ return TRANS.map(([v,t]) => `<option value="${v}"${v===sel?' selected':''}>${t}</option>`).join(''); }
+const limitBytes = () => { const v = S.limit === 'custom' ? S.limitCustom : parseFloat(S.limit); return v > 0 ? v*1048576 : 0; };
+
+async function blobToItem(blob, name){
+  const url = URL.createObjectURL(blob);
+  const img = new Image(); img.src = url;
+  await img.decode();
+  return { img, url, blob, w:img.naturalWidth, h:img.naturalHeight, name };
+}
+function newItem(r, hold, trans, transMs){
+  return { id:++uid, ...r, hold: hold ?? Math.round(num($('#bHold'),1)*1000), trans: trans ?? $('#bTrans').value, transMs: transMs ?? Math.round(num($('#bTms'),0.4)*1000) };
+}
+
+/* ---------- size / render cache ---------- */
+function outSize(){
+  if (S.sizeMode === 'custom') return [clamp(Math.round(S.outW),1,4096), clamp(Math.round(S.outH),1,4096)];
+  const b = S.items[0]; if (!b) return [480,480];
+  return [clamp(Math.round(b.w*S.scale/100),1,4096), clamp(Math.round(b.h*S.scale/100),1,4096)];
+}
+function makeRenderer(W, H){
+  const m = new Map();
+  return { W, H, full(item){
+    let c = m.get(item.id);
+    if (!c){ c = mk(W,H); const x = c.getContext('2d'); x.fillStyle = S.bg; x.fillRect(0,0,W,H); drawFitted(x, item, W, H); m.set(item.id, c); }
+    return c;
+  }};
+}
+let PR = null, prKey = '';
+function previewRenderer(){
+  const [W,H] = outSize(), k = [W,H,S.fit,S.anchor,S.bg].join('|');
+  if (k !== prKey || !PR){ prKey = k; PR = makeRenderer(W,H); }
+  return PR;
+}
+function drawFitted(ctx, item, W, H){
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  if (S.fit === 'stretch'){ ctx.drawImage(item.img, 0, 0, W, H); return; }
+  const s = S.fit === 'cover' ? Math.max(W/item.w, H/item.h) : Math.min(W/item.w, H/item.h);
+  const dw = item.w*s, dh = item.h*s, [ax,ay] = ANCH[S.anchor];
+  ctx.drawImage(item.img, (W-dw)*ax, (H-dh)*ay, dw, dh);
+}
+
+/* ---------- frame composition ---------- */
+function compose(ctx, fr, R){
+  const W = R.W, H = R.H, A = R.full(S.items[fr.a]);
+  ctx.save(); ctx.globalAlpha = 1;
+  if (fr.b == null){ ctx.drawImage(A,0,0); ctx.restore(); return; }
+  const B = R.full(S.items[fr.b]), p = fr.p, e = ease(p);
+  ctx.fillStyle = S.bg; ctx.fillRect(0,0,W,H);
+  switch (fr.type){
+    case 'fade': ctx.drawImage(A,0,0); ctx.globalAlpha = p; ctx.drawImage(B,0,0); break;
+    case 'dipblack': case 'dipwhite': {
+      if (p < .5){ ctx.drawImage(A,0,0); ctx.globalAlpha = p*2; } else { ctx.drawImage(B,0,0); ctx.globalAlpha = (1-p)*2; }
+      ctx.fillStyle = fr.type === 'dipblack' ? '#000' : '#fff'; ctx.fillRect(0,0,W,H); break; }
+    case 'flash': {
+      if (p < .25){ ctx.drawImage(A,0,0); ctx.globalAlpha = p/.25; } else { ctx.drawImage(B,0,0); ctx.globalAlpha = (1-p)/.75; }
+      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,W,H); break; }
+    case 'slide-l': ctx.drawImage(A,0,0); ctx.drawImage(B, W*(1-e), 0); break;
+    case 'slide-r': ctx.drawImage(A,0,0); ctx.drawImage(B, -W*(1-e), 0); break;
+    case 'slide-u': ctx.drawImage(A,0,0); ctx.drawImage(B, 0, H*(1-e)); break;
+    case 'slide-d': ctx.drawImage(A,0,0); ctx.drawImage(B, 0, -H*(1-e)); break;
+    case 'push-l': ctx.drawImage(A, -W*e, 0); ctx.drawImage(B, W*(1-e), 0); break;
+    case 'push-r': ctx.drawImage(A, W*e, 0); ctx.drawImage(B, -W*(1-e), 0); break;
+    case 'push-u': ctx.drawImage(A, 0, -H*e); ctx.drawImage(B, 0, H*(1-e)); break;
+    case 'push-d': ctx.drawImage(A, 0, H*e); ctx.drawImage(B, 0, -H*(1-e)); break;
+    case 'wipe-l': case 'wipe-r': case 'wipe-u': case 'wipe-d': {
+      ctx.drawImage(A,0,0); ctx.beginPath();
+      if (fr.type==='wipe-l') ctx.rect(W*(1-e),0,W*e+1,H);
+      else if (fr.type==='wipe-r') ctx.rect(0,0,W*e,H);
+      else if (fr.type==='wipe-u') ctx.rect(0,H*(1-e),W,H*e+1);
+      else ctx.rect(0,0,W,H*e);
+      ctx.clip(); ctx.drawImage(B,0,0); break; }
+    case 'zoom-in': { ctx.drawImage(A,0,0); const s = .5 + .5*e; ctx.globalAlpha = Math.min(1, p*1.6);
+      ctx.drawImage(B, (W-W*s)/2, (H-H*s)/2, W*s, H*s); break; }
+    case 'zoom-out': { ctx.drawImage(B,0,0); const s = 1 + .5*e; ctx.globalAlpha = 1-p;
+      ctx.drawImage(A, (W-W*s)/2, (H-H*s)/2, W*s, H*s); break; }
+    case 'iris': { ctx.drawImage(A,0,0); ctx.beginPath();
+      ctx.arc(W/2, H/2, Math.max(0.01, e*Math.hypot(W,H)/2), 0, Math.PI*2); ctx.clip(); ctx.drawImage(B,0,0); break; }
+    default: ctx.drawImage(p < .5 ? A : B, 0, 0);
+  }
+  ctx.restore();
+}
+function drawLogo(ctx, W, H, forceAlpha){
+  const L = S.logo; if (!L) return;
+  const lw = W*S.logoSize/100, lh = lw*L.h/L.w;
+  const m = Math.min(W,H)*S.logoMargin/100, [ax,ay] = ANCH[S.logoPos];
+  const x = m + (W - 2*m - lw)*ax + W*S.logoX/100;
+  const y = m + (H - 2*m - lh)*ay + H*S.logoY/100;
+  ctx.save();
+  ctx.globalAlpha = forceAlpha != null ? forceAlpha : S.logoOp/100;
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(L.img, x, y, lw, lh);
+  ctx.restore();
+}
+function renderFrame(ctx, fr, R, withLogo = true){ compose(ctx, fr, R); if (withLogo) drawLogo(ctx, R.W, R.H); }
+
+/* ---------- timeline ---------- */
+function buildTimeline(fps = S.fps){
+  const n = S.items.length, out = [];
+  for (let i = 0; i < n; i++){
+    const it = S.items[i];
+    out.push({ a:i, b:null, p:0, delay: Math.max(20, it.hold / S.speed) });
+    let j = i + 1;
+    if (j >= n){ if (S.loopTrans && n > 1 && S.loop !== 1) j = 0; else continue; }
+    if (it.trans === 'none' || !(it.transMs > 0)) continue;
+    const T = it.transMs / S.speed;
+    const k = Math.max(1, Math.round(T/1000*fps)), d = T/k;
+    for (let m = 1; m <= k; m++) out.push({ a:i, b:j, p:m/(k+1), type:it.trans, delay: Math.max(20, d) });
+  }
+  return out;
+}
+
+/* ---------- preview ---------- */
+const pv = $('#pv'), pctx = pv.getContext('2d');
+let tl = [], cum = [], total = 0, playing = true, tPos = 0, lastNow = performance.now(), lastIdx = -1, dirty = true;
+function rebuild(){
+  tl = buildTimeline(); cum = []; total = 0;
+  for (const f of tl){ cum.push(total); total += f.delay; }
+  const R = previewRenderer();
+  if (pv.width !== R.W || pv.height !== R.H){ pv.width = R.W; pv.height = R.H; }
+  const has = S.items.length > 0;
+  pv.classList.toggle('hidden', !has); $('#emptyMsg').classList.toggle('hidden', has);
+  $('#info').textContent = has ? `${R.W}×${R.H}px · ${tl.length}프레임 · ${(total/1000).toFixed(2)}초` : '';
+  $('#sizeInfo').textContent = has ? `최종 출력: ${R.W} × ${R.H} px` : '';
+  $('#cnt').textContent = has ? `(${S.items.length})` : '';
+  if (tPos >= total) tPos = 0;
+  dirty = true;
+}
+let rbTimer = null;
+function schedule(){ clearTimeout(rbTimer); rbTimer = setTimeout(rebuild, 30); }
+function frameAt(t){ let lo = 0, hi = cum.length - 1; while (lo < hi){ const mid = (lo+hi+1)>>1; if (cum[mid] <= t) lo = mid; else hi = mid-1; } return lo; }
+function tick(now){
+  const dt = now - lastNow; lastNow = now;
+  if (tl.length && PR){
+    if (playing) tPos = (tPos + dt) % total;
+    const i = frameAt(tPos);
+    if (i !== lastIdx || dirty){
+      if (tl[i] && S.items[tl[i].a]){
+        renderFrame(pctx, tl[i], PR);
+        const cur = tl[i]; const sid = S.items[cur.p > .5 && cur.b != null ? cur.b : cur.a].id;
+        document.querySelectorAll('.card').forEach(c => c.classList.toggle('sel', +c.dataset.id === sid));
+      }
+      lastIdx = i; dirty = false;
+    }
+    $('#scrub').value = Math.round(tPos/total*1000);
+    $('#tnow').textContent = `${(tPos/1000).toFixed(2)} / ${(total/1000).toFixed(2)}초`;
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+function setPlaying(v){ playing = v; $('#playBtn').textContent = v ? '⏸ 일시정지' : '▶ 재생'; }
+$('#playBtn').onclick = () => setPlaying(!playing);
+$('#scrub').oninput = e => { setPlaying(false); tPos = (+e.target.value/1000)*total*0.9999; dirty = true; };
+
+/* ---------- importing: images / animated / PSD / project ---------- */
+async function decodeAnimated(file){
+  if (!('ImageDecoder' in window)) return null;
+  try{
+    if (!(await ImageDecoder.isTypeSupported(file.type))) return null;
+    const dec = new ImageDecoder({ data: await file.arrayBuffer(), type: file.type });
+    await dec.tracks.ready;
+    const n = dec.tracks.selectedTrack ? dec.tracks.selectedTrack.frameCount : 1;
+    if (n <= 1){ dec.close(); return null; }
+    const out = [], base = baseOf(file.name);
+    for (let i = 0; i < n; i++){
+      setStatus(`"${file.name}" 프레임 불러오는 중… ${i+1}/${n}`);
+      const { image } = await dec.decode({ frameIndex: i });
+      const w = image.displayWidth, h = image.displayHeight, c = mk(w, h);
+      c.getContext('2d').drawImage(image, 0, 0);
+      const dur = image.duration ? Math.max(20, Math.round(image.duration/1000)) : 100;
+      image.close();
+      const r = await blobToItem(await toBlob(c, 'image/png'), `${base} #${String(i+1).padStart(3,'0')}`);
+      out.push(newItem(r, dur, 'none', 0));
+      if (i % 4 === 3) await yieldUI();
+    }
+    dec.close();
+    return out;
+  }catch(e){ console.warn(e); return null; }
+}
+
+async function inflate(u8){
+  const ds = new DecompressionStream('deflate');
+  return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(ds)).arrayBuffer());
+}
+function unpackBits(src, s, slen, dst, d, dlen){
+  let i = s, o = d; const end = s + slen, oend = d + dlen;
+  while (i < end && o < oend){
+    let n = src[i++];
+    if (n < 128){ n++; for (let k = 0; k < n && o < oend; k++) dst[o++] = src[i++]; }
+    else if (n > 128){ n = 257 - n; const v = src[i++]; for (let k = 0; k < n && o < oend; k++) dst[o++] = v; }
+  }
+}
+async function readPSD(buf){
+  const b = new Uint8Array(buf), v = new DataView(buf);
+  const str = (o,n) => String.fromCharCode(...b.subarray(o, o+n));
+  if (str(0,4) !== '8BPS') throw new Error('PSD 파일이 아닙니다');
+  if (v.getUint16(4) !== 1) throw new Error('PSB(대용량 PSD)는 지원하지 않습니다');
+  const nch = v.getUint16(12), H = v.getUint32(14), W = v.getUint32(18), depth = v.getUint16(22), mode = v.getUint16(24);
+  if (depth !== 8 || mode !== 3) throw new Error('8비트 RGB PSD만 열 수 있습니다 (포토샵: 이미지 > 모드 > RGB 색상 / 8비트)');
+  let o = 26; o += 4 + v.getUint32(o); o += 4 + v.getUint32(o);
+  const lmLen = v.getUint32(o); const lmEnd = o + 4 + lmLen; o += 4;
+  const layers = [];
+  if (lmLen > 0){
+    const liLen = v.getUint32(o); o += 4;
+    if (liLen > 0){
+      const count = Math.abs(v.getInt16(o)); o += 2;
+      for (let i = 0; i < count; i++){
+        const L = { top:v.getInt32(o), left:v.getInt32(o+4), bottom:v.getInt32(o+8), right:v.getInt32(o+12) }; o += 16;
+        const cn = v.getUint16(o); o += 2; L.chans = [];
+        for (let c = 0; c < cn; c++){ L.chans.push({ id:v.getInt16(o), len:v.getUint32(o+2) }); o += 6; }
+        o += 8; L.opacity = b[o]; L.flags = b[o+2]; o += 4;
+        const exLen = v.getUint32(o); o += 4; const exEnd = o + exLen;
+        o += 4 + v.getUint32(o); o += 4 + v.getUint32(o);
+        const pn = b[o]; L.name = str(o+1, pn); o += Math.ceil((1+pn)/4)*4;
+        while (o + 12 <= exEnd){
+          const sig = str(o,4), key = str(o+4,4), len = v.getUint32(o+8); o += 12;
+          if (sig !== '8BIM' && sig !== '8B64') break;
+          if (key === 'luni'){ const n = v.getUint32(o); let s = ''; for (let k = 0; k < n; k++) s += String.fromCharCode(v.getUint16(o+4+2*k)); L.name = s.replace(/\0+$/,''); }
+          if (key === 'lsct' || key === 'lsdk') L.divider = v.getUint32(o) > 0;
+          o += len;
+        }
+        o = exEnd; L.w = L.right - L.left; L.h = L.bottom - L.top;
+        layers.push(L);
+      }
+      for (const L of layers){
+        for (const c of L.chans){
+          const st = o, comp = v.getUint16(o); o += 2;
+          if (L.w > 0 && L.h > 0 && c.id >= -1 && c.id <= 2){
+            const plane = new Uint8Array(L.w*L.h);
+            if (comp === 0) plane.set(b.subarray(o, o + L.w*L.h));
+            else if (comp === 1){
+              let d = o + 2*L.h;
+              for (let y = 0; y < L.h; y++){ const n = v.getUint16(o + 2*y); unpackBits(b, d, n, plane, y*L.w, L.w); d += n; }
+            } else {
+              const raw = await inflate(b.subarray(o, st + c.len)); plane.set(raw.subarray(0, plane.length));
+              if (comp === 3) for (let y = 0; y < L.h; y++){ const r = y*L.w; for (let x = 1; x < L.w; x++) plane[r+x] = (plane[r+x] + plane[r+x-1]) & 255; }
+            }
+            c.plane = plane;
+          }
+          o = st + c.len;
+        }
+      }
+    }
+  }
+  o = lmEnd;
+  // merged image (used when no layers)
+  let merged = null;
+  if (!layers.some(L => !L.divider && L.w > 0 && L.h > 0)){
+    const comp = v.getUint16(o); o += 2;
+    merged = { top:0, left:0, w:W, h:H, opacity:255, name:'합성', chans:[] };
+    const chs = Math.min(nch, 4);
+    if (comp === 0){
+      for (let c = 0; c < chs; c++){ merged.chans.push({ id: c === 3 ? -1 : c, plane: b.slice(o, o + W*H) }); o += W*H; }
+    } else if (comp === 1){
+      const cnt = o; let d = o + 2*H*nch;
+      for (let c = 0; c < nch; c++){
+        const plane = new Uint8Array(W*H);
+        for (let y = 0; y < H; y++){ const n = v.getUint16(cnt + 2*(c*H + y)); unpackBits(b, d, n, plane, y*W, W); d += n; }
+        if (c < chs) merged.chans.push({ id: c === 3 ? -1 : c, plane });
+      }
+    } else throw new Error('이 PSD의 합성 이미지 압축 방식은 지원하지 않습니다');
+  }
+  return { W, H, layers: layers.filter(L => !L.divider && L.w > 0 && L.h > 0), merged };
+}
+async function layerToCanvas(L, W, H){
+  const c = mk(W, H), x = c.getContext('2d');
+  const id = x.createImageData(L.w, L.h), d = id.data;
+  const get = k => (L.chans.find(c => c.id === k) || {}).plane;
+  const r = get(0), g = get(1), bl = get(2), a = get(-1);
+  for (let i = 0, p = 0; i < L.w*L.h; i++, p += 4){
+    d[p] = r ? r[i] : 0; d[p+1] = g ? g[i] : 0; d[p+2] = bl ? bl[i] : 0; d[p+3] = a ? a[i] : 255;
+  }
+  x.putImageData(id, L.left, L.top);
+  return c;
+}
+async function importPSD(file){
+  setStatus(`"${file.name}" 읽는 중…`);
+  const P = await readPSD(await file.arrayBuffer());
+  const wasEmpty = S.items.length === 0;
+  const top2bottom = P.layers.slice().reverse();
+  const items = []; let logoSet = false;
+  for (const L of (P.merged ? [P.merged] : top2bottom)){
+    const nm = L.name.trim();
+    if (/^(배경|background)$/i.test(nm)){
+      const a = L.chans.find(c => c.id === -1), ci = Math.floor(L.h/2)*L.w + Math.floor(L.w/2);
+      if (!a || a.plane[ci] === 255){
+        const hex = [0,1,2].map(k => { const ch = L.chans.find(c => c.id === k); return (ch ? ch.plane[ci] : 0).toString(16).padStart(2,'0'); }).join('');
+        if (wasEmpty) S.bg = '#' + hex;
+      }
+      continue;
+    }
+    const cv = await layerToCanvas(L, P.W, P.H);
+    if (!logoSet && /^(로고|logo)/i.test(nm) && (!S.logo || wasEmpty)){
+      S.logo = await blobToItem(await toBlob(cv, 'image/png'), nm);
+      S.logoPos = 'tl'; S.logoSize = 100; S.logoMargin = 0; S.logoX = 0; S.logoY = 0; S.logoOp = Math.round(L.opacity/2.55);
+      logoSet = true; continue;
+    }
+    const mm = nm.match(/\(([\d.]+)\s*(ms|s|초)\)/i);
+    const holdMs = mm ? Math.round(parseFloat(mm[1]) * (mm[2].toLowerCase() === 'ms' ? 1 : 1000)) : undefined;
+    const clean = nm.replace(/\([\d.]+\s*(ms|s|초)\)/i, '').replace(/^\d+\s+/, '').trim() || baseOf(file.name);
+    const r = await blobToItem(await toBlob(cv, 'image/png'), clean);
+    items.push(newItem(r, holdMs));
+    await yieldUI();
+  }
+  if (wasEmpty){ S.sizeMode = 'original'; S.scale = 100; S.fit = 'cover'; S.anchor = 'mc'; }
+  setStatus(`PSD에서 장면 ${items.length}개${logoSet ? ' + 로고' : ''}를 불러왔습니다`, 'ok');
+  return items;
+}
+
+function dataURLtoBlob(u){
+  const [h, d] = u.split(','), mime = (h.match(/data:([^;]+)/) || [,'image/png'])[1];
+  const bin = atob(d), a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+  return new Blob([a], { type: mime });
+}
+const blobToDataURL = blob => new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(blob); });
+async function loadProject(file){
+  const P = JSON.parse(await file.text());
+  if (P.app !== 'umzzal-maker') throw new Error('움짤 메이커 프로젝트 파일이 아닙니다');
+  setStatus('프로젝트 불러오는 중…');
+  const items = [];
+  for (const it of P.items){
+    const r = await blobToItem(dataURLtoBlob(it.data), it.name);
+    items.push(newItem(r, it.hold, it.trans, it.transMs));
+  }
+  S.items = items;
+  S.logo = P.logo ? await blobToItem(dataURLtoBlob(P.logo.data), P.logo.name) : null;
+  for (const k of SETTING_KEYS) if (P.settings && k in P.settings) S[k] = P.settings[k];
+  syncUI(); renderList(); rebuild();
+  setStatus(`프로젝트를 불러왔습니다 (장면 ${items.length}개)`, 'ok');
+}
+async function saveProject(){
+  if (!S.items.length){ setStatus('저장할 장면이 없습니다', 'err'); return; }
+  setStatus('프로젝트 파일 만드는 중…');
+  const P = { app:'umzzal-maker', version: VERSION, saved: new Date().toISOString(), settings:{}, items:[], logo:null };
+  for (const k of SETTING_KEYS) P.settings[k] = S[k];
+  for (const it of S.items) P.items.push({ name: it.name, hold: it.hold, trans: it.trans, transMs: it.transMs, data: await blobToDataURL(it.blob) });
+  if (S.logo) P.logo = { name: S.logo.name, data: await blobToDataURL(S.logo.blob) };
+  const blob = new Blob([JSON.stringify(P)], { type:'application/json' });
+  await saveFile(`${fileBase()}.umzzal.json`, blob);
+}
+
+// one entry point for everything that comes in
+async function importFiles(files, insertAt = null, replaceId = null){
+  const arr = [...files]; if (!arr.length) return;
+  const added = [];
+  try{
+    for (const f of arr){
+      const ext = extOf(f.name);
+      if (ext === 'json' || f.type === 'application/json'){ await loadProject(f); return; }
+      if (ext === 'psd'){ added.push(...await importPSD(f)); continue; }
+      if (!f.type.startsWith('image/')) { setStatus(`"${f.name}" 은(는) 지원하지 않는 파일입니다`, 'err'); continue; }
+      if (/gif|webp|png|avif/.test(f.type)){
+        const frames = await decodeAnimated(f);
+        if (frames){ added.push(...frames); setStatus(`"${f.name}"에서 프레임 ${frames.length}개를 불러왔습니다`, 'ok'); continue; }
+      }
+      try{ added.push(newItem(await blobToItem(f, f.name))); }
+      catch(e){ setStatus(`"${f.name}" 을(를) 불러오지 못했습니다`, 'err'); }
+    }
+  }catch(e){ console.error(e); setStatus('불러오기 오류: ' + (e.message || e), 'err'); }
+  if (!added.length){ syncUI(); return; }
+  if (replaceId != null){
+    const i = idxOf(replaceId);
+    if (i >= 0){ const old = S.items[i]; const n = added[0]; n.hold = old.hold; n.trans = old.trans; n.transMs = old.transMs; S.items.splice(i, 1, ...added); }
+  } else if (insertAt != null) S.items.splice(insertAt, 0, ...added);
+  else S.items.push(...added);
+  syncUI(); renderList(); rebuild();
+}
+
+/* ---------- image list ---------- */
+const list = $('#list');
+function renderList(){
+  list.innerHTML = S.items.map((it,i) => `
+    <div class="card" draggable="true" data-id="${it.id}">
+      <div class="th" style="background-image:url('${it.url}')"><span>${i+1}</span></div>
+      <div class="body">
+        <div class="tools">
+          <button data-act="up" title="위로">▲</button><button data-act="down" title="아래로">▼</button>
+          <button data-act="dup" title="복제">⧉</button><button data-act="rep" title="이미지 교체 (설정 유지)">↻</button>
+          <button data-act="ins" title="이 장면 뒤에 이미지 추가">＋</button><button data-act="del" class="del" title="삭제">✕</button>
+        </div>
+        <div class="nm" title="${esc(it.name)}">${esc(it.name)} <span style="color:var(--muted)">${it.w}×${it.h}</span></div>
+        <div class="row">
+          <span title="이 장면을 보여주는 시간">유지</span><input type="number" class="secs" data-k="hold" value="${sec(it.hold)}" min="0.02" step="0.1">초
+          <span class="sep"></span>
+          <select data-k="trans" title="다음 장면으로 넘어가는 효과">${transOptions(it.trans)}</select>
+          <input type="number" class="secs" data-k="transMs" value="${sec(it.transMs)}" min="0" step="0.1" title="전환 효과 시간(초)" ${it.trans==='none'?'disabled':''}>초
+        </div>
+      </div>
+    </div>`).join('');
+}
+const idxOf = id => S.items.findIndex(x => x.id === id);
+list.addEventListener('input', e => {
+  const k = e.target.dataset.k; if (!k) return;
+  const it = S.items[idxOf(+e.target.closest('.card').dataset.id)];
+  if (k === 'trans'){ it.trans = e.target.value; e.target.nextElementSibling.disabled = it.trans === 'none'; }
+  else it[k] = Math.max(0, Math.round(num(e.target, it[k]/1000)*1000));
+  schedule();
+});
+let cardTarget = null;
+$('#cardIn').onchange = e => { const t = cardTarget; cardTarget = null; const fs = [...e.target.files]; e.target.value = ''; if (!t) return;
+  if (t.mode === 'rep') importFiles(fs.slice(0,1), null, t.id); else importFiles(fs, idxOf(t.id) + 1); };
+list.addEventListener('click', e => {
+  const card = e.target.closest('.card'); if (!card) return;
+  const id = +card.dataset.id, i = idxOf(id), act = e.target.dataset.act;
+  if (act){
+    if (act === 'rep' || act === 'ins'){ cardTarget = { mode:act, id }; const ci = $('#cardIn'); ci.multiple = act === 'ins'; ci.click(); return; }
+    if (act === 'up' && i > 0) [S.items[i-1], S.items[i]] = [S.items[i], S.items[i-1]];
+    else if (act === 'down' && i < S.items.length-1) [S.items[i+1], S.items[i]] = [S.items[i], S.items[i+1]];
+    else if (act === 'dup') S.items.splice(i+1, 0, { ...S.items[i], id:++uid });
+    else if (act === 'del') S.items.splice(i, 1);
+    renderList(); rebuild(); return;
+  }
+  if (e.target.closest('input,select')) return;
+  const fi = tl.findIndex(f => f.a === i && f.b == null);
+  if (fi >= 0){ setPlaying(false); tPos = cum[fi]; dirty = true; }
+});
+let dragId = null;
+list.addEventListener('dragstart', e => {
+  const c = e.target.closest('.card'); if (!c) return;
+  dragId = +c.dataset.id; c.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', 'card');
+});
+list.addEventListener('dragend', () => { dragId = null; document.querySelectorAll('.card').forEach(c => c.classList.remove('dragging','dropT','dropB')); });
+list.addEventListener('dragover', e => {
+  if (dragId == null) return; e.preventDefault();
+  const c = e.target.closest('.card');
+  document.querySelectorAll('.card').forEach(x => x.classList.remove('dropT','dropB'));
+  if (c){ const r = c.getBoundingClientRect(); c.classList.add(e.clientY < r.top + r.height/2 ? 'dropT' : 'dropB'); }
+});
+list.addEventListener('drop', e => {
+  if (dragId == null) return; e.preventDefault(); e.stopPropagation();
+  const c = e.target.closest('.card'); if (!c) return;
+  const tid = +c.dataset.id; if (tid === dragId) return;
+  const r = c.getBoundingClientRect(), after = e.clientY >= r.top + r.height/2;
+  const [moved] = S.items.splice(idxOf(dragId), 1);
+  let ti = idxOf(tid); if (after) ti++;
+  S.items.splice(ti, 0, moved);
+  renderList(); rebuild();
+});
+const drop = $('#drop'), leftScroll = $('#leftScroll');
+drop.onclick = () => $('#fileIn').click();
+$('#openBtn').onclick = () => $('#fileIn').click();
+$('#fileIn').onchange = e => { const fs = [...e.target.files]; e.target.value = ''; importFiles(fs); };
+const hasFiles = e => [...e.dataTransfer.types].includes('Files');
+leftScroll.addEventListener('dragover', e => { if (dragId == null && hasFiles(e)){ e.preventDefault(); drop.classList.add('over'); } });
+leftScroll.addEventListener('dragleave', e => { if (!leftScroll.contains(e.relatedTarget)) drop.classList.remove('over'); });
+leftScroll.addEventListener('drop', e => { if (dragId != null) return; e.preventDefault(); drop.classList.remove('over'); importFiles(e.dataTransfer.files); });
+$('#stage').addEventListener('dragover', e => { if (hasFiles(e)) e.preventDefault(); });
+$('#stage').addEventListener('drop', e => { if (!hasFiles(e)) return; e.preventDefault(); importFiles(e.dataTransfer.files); });
+$('#clearAll').onclick = () => { S.items = []; renderList(); rebuild(); };
+$('#sortName').onclick = () => { S.items.sort((a,b) => a.name.localeCompare(b.name, 'ko', {numeric:true})); renderList(); rebuild(); };
+$('#bTrans').innerHTML = transOptions('fade');
+$('#bApply').onclick = () => {
+  const h = Math.round(num($('#bHold'),1)*1000), t = $('#bTrans').value, tm = Math.round(num($('#bTms'),0.4)*1000);
+  S.items.forEach(it => { it.hold = h; it.trans = t; it.transMs = tm; });
+  renderList(); rebuild();
+};
+$('#shortDel').onclick = () => {
+  const lim = num($('#shortMs'), 0.06)*1000, before = S.items.length;
+  if (S.items.every(it => it.hold <= lim)){ setStatus('모든 장면이 기준 이하라 삭제하지 않았습니다', 'err'); return; }
+  S.items = S.items.filter(it => it.hold > lim);
+  setStatus(`${before - S.items.length}개 장면을 삭제했습니다`, 'ok'); renderList(); rebuild();
+};
+
+/* ---------- settings bindings ---------- */
+const RANGE_FMT = { speed: v => (+v).toFixed(2)+'×', logoSize: v => v+'%', logoMargin: v => v+'%', logoOp: v => v+'%', webpQ: v => String(v) };
+Object.keys(RANGE_FMT).forEach(k => {
+  const el = $('#'+k);
+  el.addEventListener('input', () => { S[k] = num(el, S[k]); $('#'+k+'V').textContent = RANGE_FMT[k](S[k]); dirty = true; schedule(); });
+});
+['fps','loop','scale','outW','outH','logoX','logoY','limitCustom'].forEach(k =>
+  $('#'+k).addEventListener('input', e => { S[k] = num(e.target, S[k]); if (k === 'fps') S.fps = clamp(S.fps,5,50); schedule(); }));
+['loopTrans','psdAll','allowQ','allowFps','allowScale'].forEach(k => $('#'+k).addEventListener('change', e => { S[k] = e.target.checked; schedule(); }));
+$('#fit').onchange = e => { S.fit = e.target.value; schedule(); };
+$('#bg').oninput = e => { S.bg = e.target.value; schedule(); };
+$('#baseName').oninput = e => { S.baseName = e.target.value; };
+$('#limit').onchange = e => { S.limit = e.target.value; syncLimitUI(); };
+function syncLimitUI(){
+  $('#limitCustomRow').classList.toggle('hidden', S.limit !== 'custom');
+  $('#limitOpts').classList.toggle('hidden', !limitBytes());
+}
+$('#sizeMode').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.sizeMode = b.dataset.v; syncSizeMode(); schedule(); };
+function syncSizeMode(){
+  [...$('#sizeMode').children].forEach(x => x.classList.toggle('on', x.dataset.v === S.sizeMode));
+  $('#origBox').classList.toggle('hidden', S.sizeMode !== 'original');
+  $('#custBox').classList.toggle('hidden', S.sizeMode !== 'custom');
+}
+document.querySelector('.presets').onclick = e => {
+  const p = e.target.dataset.p; if (!p) return;
+  if (p === 'swap'){ [S.outW, S.outH] = [S.outH, S.outW]; }
+  else { const [w,h] = p.split('x').map(Number); S.outW = w; S.outH = h; }
+  $('#outW').value = S.outW; $('#outH').value = S.outH; schedule();
+};
+function grid9(el, key){
+  el.innerHTML = Object.keys(ANCH).map(k => `<button data-v="${k}" title="${k}"></button>`).join('');
+  el.onclick = e => { const b = e.target.closest('button'); if (!b) return; S[key] = b.dataset.v; syncGrid(el, key); schedule(); };
+  syncGrid(el, key);
+}
+function syncGrid(el, key){ [...el.children].forEach(x => x.classList.toggle('on', x.dataset.v === S[key])); }
+grid9($('#anchor'), 'anchor'); grid9($('#logoPos'), 'logoPos');
+function syncLogoUI(){
+  $('#logoThumb').style.backgroundImage = S.logo ? `url('${S.logo.url}')` : '';
+  $('#logoDel').classList.toggle('hidden', !S.logo); $('#logoOpts').classList.toggle('hidden', !S.logo);
+}
+function syncUI(){
+  for (const k of ['speed','fps','loop','scale','outW','outH','logoSize','logoMargin','logoOp','logoX','logoY','webpQ','limitCustom','baseName','bg','fit','limit']) $('#'+k).value = S[k];
+  for (const k of ['loopTrans','psdAll','allowQ','allowFps','allowScale']) $('#'+k).checked = !!S[k];
+  Object.keys(RANGE_FMT).forEach(k => $('#'+k+'V').textContent = RANGE_FMT[k](S[k]));
+  syncGrid($('#anchor'), 'anchor'); syncGrid($('#logoPos'), 'logoPos');
+  syncSizeMode(); syncLimitUI(); syncLogoUI(); dirty = true;
+}
+$('#logoPick').onclick = () => $('#logoIn').click();
+$('#logoIn').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try{ S.logo = await blobToItem(f, f.name); }catch(err){ setStatus('로고를 불러오지 못했습니다', 'err'); return; }
+  syncLogoUI(); dirty = true;
+};
+$('#logoDel').onclick = () => { S.logo = null; syncLogoUI(); dirty = true; };
+
+/* ---------- theme ---------- */
+function setTheme(t){
+  document.body.dataset.theme = t;
+  [...$('#themes').children].forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  try{ localStorage.setItem('umzzal-theme', t); }catch(e){}
+}
+$('#themes').onclick = e => { const b = e.target.closest('button'); if (b) setTheme(b.dataset.t); };
+let savedTheme = 'dark'; try{ savedTheme = localStorage.getItem('umzzal-theme') || 'dark'; }catch(e){}
+setTheme(savedTheme);
+
+/* ---------- status / save ---------- */
+function setStatus(t, cls = ''){ const s = $('#status'); s.textContent = t; s.className = cls; }
+function setProg(v){ const p = $('#prog'); if (v == null){ p.style.display = 'none'; return; } p.style.display = 'block'; p.firstElementChild.style.width = (v*100).toFixed(1)+'%'; }
+let dlNS = null;
+try{ if (window.claude && typeof window.claude.use === 'function') window.claude.use('downloads').then(ns => { dlNS = ns; }).catch(() => {}); }catch(e){}
+async function saveFile(name, blob){
+  if (dlNS){
+    let fname = name, data = blob;
+    if (/\.psd$/i.test(name)){
+      setStatus('PSD를 zip으로 감싸는 중…');
+      data = makeZip([{ name, data: new Uint8Array(await blob.arrayBuffer()) }]);
+      fname = name.replace(/\.psd$/i, '.zip');
+    }
+    try{ await dlNS.save({ filename: fname, data }); setStatus(`저장 완료: ${fname}` + (fname!==name ? ' (압축을 풀면 PSD가 나옵니다)' : ''), 'ok'); }
+    catch(e){ setStatus(e && e.code === 'declined' ? '저장을 취소했습니다' : '저장 실패: ' + ((e && (e.message || e.code)) || e), e && e.code === 'declined' ? '' : 'err'); }
+    return;
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 5000);
+  setStatus(`저장 완료: ${name}`, 'ok');
+}
+let lastOut = null;
+function showResult(blob, name, ext, W, H, note){
+  const r = $('#result'); r.style.display = 'flex';
+  if (lastOut && lastOut.url) URL.revokeObjectURL(lastOut.url);
+  const url = ext === 'psd' ? null : URL.createObjectURL(blob);
+  $('#resImg').style.display = url ? '' : 'none'; if (url) $('#resImg').src = url;
+  $('#resMeta').innerHTML = `<b style="color:var(--text)">${esc(name)}</b><br>${W}×${H}px · <b style="color:var(--text)">${fmtSize(blob.size)}</b>${note ? '<br>' + note : ''}`;
+  lastOut = { blob, name, url };
+}
+$('#resSave').onclick = () => { if (lastOut) saveFile(lastOut.name, lastOut.blob); };
+const fileBase = () => (S.baseName.trim() || 'animation').replace(/[\\/:*?"<>|]/g, '_');
+
+let busy = false;
+async function runExport(kind){
+  if (busy) return;
+  if (!S.items.length){ setStatus('장면을 먼저 추가하세요', 'err'); return; }
+  busy = true; document.querySelectorAll('.exp .btn').forEach(b => b.disabled = true);
+  const was = playing; setPlaying(false);
+  try{
+    if (kind === 'proj'){ await saveProject(); }
+    else {
+      let res;
+      if (kind === 'psd'){ const [W,H] = outSize(); res = { blob: await exportPSD(), W, H, note: limitBytes() ? 'PSD는 편집용이라 용량 제한을 적용하지 않습니다' : '' }; }
+      else res = await exportFitted(kind);
+      const name = `${fileBase()}.${kind}`;
+      showResult(res.blob, name, kind, res.W, res.H, res.note);
+      setProg(null);
+      if (res.warn) setStatus(res.warn, 'err');
+      await saveFile(name, res.blob);
+      if (res.warn) setStatus(res.warn + ' — 그래도 저장했습니다', 'err');
+    }
+  }catch(e){ console.error(e); setStatus('오류: ' + (e.message || e), 'err'); }
+  setProg(null);
+  busy = false; document.querySelectorAll('.exp .btn').forEach(b => b.disabled = false); setPlaying(was);
+}
+$('#expGif').onclick = () => runExport('gif');
+$('#expWebp').onclick = () => runExport('webp');
+$('#expPsd').onclick = () => runExport('psd');
+$('#expProj').onclick = () => runExport('proj');
+
+/* ---------- size-limited export ---------- */
+async function exportFitted(kind){
+  const [W0,H0] = outSize(), limit = limitBytes();
+  const hasTrans = S.items.some(it => it.trans !== 'none' && it.transMs > 0);
+  const o = { scale:1, fps:S.fps, colors:256, q:S.webpQ/100 };
+  let blob, W, H, tries = 0;
+  for (; tries < 10; tries++){
+    W = Math.max(16, Math.round(W0*o.scale)); H = Math.max(16, Math.round(H0*o.scale));
+    const tag = tries ? ` (용량 맞추기 ${tries+1}차)` : '';
+    blob = kind === 'gif' ? await exportGIF({ W, H, fps:o.fps, colors:o.colors }, tag) : await exportWebP({ W, H, fps:o.fps, q:o.q }, tag);
+    if (!limit || blob.size <= limit) break;
+    const ratio = limit / blob.size;
+    setStatus(`${fmtSize(blob.size)} → 목표 초과, 줄여서 다시 만드는 중…`);
+    if (S.allowQ && kind === 'webp' && o.q > 0.6){ o.q = Math.max(0.6, o.q - (ratio < 0.6 ? 0.25 : 0.12)); continue; }
+    if (S.allowQ && kind === 'gif' && o.colors > 128){ o.colors = 128; continue; }
+    if (S.allowFps && hasTrans && o.fps > 10 && ratio < 0.9){ o.fps = Math.max(10, Math.round(o.fps*0.6)); continue; }
+    if (S.allowScale && o.scale > 0.1){ o.scale = Math.max(0.1, o.scale*Math.sqrt(ratio)*0.94); continue; }
+    if (S.allowQ && kind === 'gif' && o.colors > 32){ o.colors /= 2; continue; }
+    if (S.allowQ && kind === 'webp' && o.q > 0.25){ o.q = Math.max(0.25, o.q - 0.15); continue; }
+    break;
+  }
+  const adj = [];
+  if (o.scale < 1) adj.push(`해상도 ${Math.round(o.scale*100)}%`);
+  if (kind === 'gif' && o.colors < 256) adj.push(`${o.colors}색`);
+  if (kind === 'webp' && o.q < S.webpQ/100 - 1e-6) adj.push(`화질 ${Math.round(o.q*100)}`);
+  if (o.fps < S.fps) adj.push(`전환 ${o.fps}fps`);
+  let note = '', warn = '';
+  if (limit){
+    const ok = blob.size <= limit;
+    note = `목표 ${fmtSize(limit)} 이하 ${ok ? '✅' : '❌'}` + (adj.length ? ` · 자동 조정: ${adj.join(', ')}` : ' · 조정 없음');
+    if (!ok) warn = `목표 용량(${fmtSize(limit)})까지 줄이지 못했습니다. 허용 방법을 늘리거나 장면 수·크기를 줄여 보세요`;
+  }
+  return { blob, W, H, note, warn };
+}
+
+/* ---------- GIF ---------- */
+async function exportGIF(opt = {}, tag = ''){
+  const [W0,H0] = outSize();
+  const W = opt.W || W0, H = opt.H || H0, colors = opt.colors || 256;
+  const R = makeRenderer(W, H), frames = buildTimeline(opt.fps || S.fps);
+  const enc = gifenc.GIFEncoder();
+  const cv = mk(W,H), ctx = cv.getContext('2d', { willReadFrequently:true });
+  const repeat = S.loop === 0 ? 0 : (S.loop === 1 ? -1 : S.loop - 1);
+  let ideal = 0, emitted = 0;
+  for (let i = 0; i < frames.length; i++){
+    setStatus(`GIF 인코딩 중${tag}… ${i+1}/${frames.length}`); setProg(i/frames.length);
+    renderFrame(ctx, frames[i], R);
+    const data = ctx.getImageData(0,0,W,H).data;
+    const palette = gifenc.quantize(data, colors);
+    const index = gifenc.applyPalette(data, palette);
+    ideal += frames[i].delay;
+    let cs = Math.round(ideal/10) - emitted; if (cs < 2) cs = 2; emitted += cs;
+    enc.writeFrame(index, W, H, { palette, delay: cs*10, repeat });
+    await yieldUI();
+  }
+  enc.finish();
+  return new Blob([enc.bytes()], { type:'image/gif' });
+}
+
+/* ---------- animated WebP ---------- */
+const fourcc = (b, o) => String.fromCharCode(b[o], b[o+1], b[o+2], b[o+3]);
+function webpChunks(b){
+  if (fourcc(b,0) !== 'RIFF' || fourcc(b,8) !== 'WEBP') throw new Error('WebP 데이터가 올바르지 않습니다');
+  const out = []; let o = 12;
+  while (o + 8 <= b.length){
+    const id = fourcc(b,o), sz = (b[o+4] | (b[o+5]<<8) | (b[o+6]<<16) | (b[o+7]<<24)) >>> 0;
+    if (id === 'ALPH' || id === 'VP8 ' || id === 'VP8L') out.push({ id, data: b.subarray(o+8, o+8+sz) });
+    o += 8 + sz + (sz & 1);
+  }
+  return out;
+}
+function riffChunk(id, data){
+  const pad = data.length & 1, c = new Uint8Array(8 + data.length + pad);
+  for (let i = 0; i < 4; i++) c[i] = id.charCodeAt(i);
+  const n = data.length; c[4]=n&255; c[5]=(n>>8)&255; c[6]=(n>>16)&255; c[7]=(n>>>24)&255;
+  c.set(data, 8); return c;
+}
+const u24 = (a, o, v) => { a[o]=v&255; a[o+1]=(v>>8)&255; a[o+2]=(v>>16)&255; };
+async function exportWebP(opt = {}, tag = ''){
+  const [W0,H0] = outSize();
+  const W = opt.W || W0, H = opt.H || H0, q = opt.q != null ? opt.q : S.webpQ/100;
+  const R = makeRenderer(W, H), frames = buildTimeline(opt.fps || S.fps);
+  const cv = mk(W,H), ctx = cv.getContext('2d');
+  const parts = []; let alpha = false;
+  for (let i = 0; i < frames.length; i++){
+    setStatus(`WebP 인코딩 중${tag}… ${i+1}/${frames.length}`); setProg(i/frames.length);
+    renderFrame(ctx, frames[i], R);
+    const blob = await toBlob(cv, 'image/webp', q);
+    if (!blob || blob.type !== 'image/webp') throw new Error('이 브라우저는 WebP 저장을 지원하지 않습니다. 크롬이나 엣지에서 열어주세요.');
+    const ch = webpChunks(new Uint8Array(await blob.arrayBuffer()));
+    if (ch.some(c => c.id === 'ALPH' || c.id === 'VP8L')) alpha = true;
+    const head = new Uint8Array(16);
+    u24(head,6,W-1); u24(head,9,H-1);
+    u24(head,12, Math.min(0xFFFFFF, Math.round(frames[i].delay))); head[15] = 0x02;
+    const body = [head, ...ch.map(c => riffChunk(c.id, c.data))];
+    const len = body.reduce((s,a) => s + a.length, 0), buf = new Uint8Array(len); let o = 0;
+    for (const a of body){ buf.set(a, o); o += a.length; }
+    parts.push(riffChunk('ANMF', buf));
+  }
+  const vp8x = new Uint8Array(10); vp8x[0] = 0x02 | (alpha ? 0x10 : 0); u24(vp8x,4,W-1); u24(vp8x,7,H-1);
+  const bgc = S.bg.match(/\w\w/g).map(h => parseInt(h,16));
+  const anim = new Uint8Array(6); anim[0]=bgc[2]; anim[1]=bgc[1]; anim[2]=bgc[0]; anim[3]=255;
+  const lc = S.loop === 0 ? 0 : clamp(S.loop,1,65535); anim[4]=lc&255; anim[5]=lc>>8;
+  const chunks = [riffChunk('VP8X', vp8x), riffChunk('ANIM', anim), ...parts];
+  const size = 4 + chunks.reduce((s,a) => s + a.length, 0);
+  const hdr = new Uint8Array(12); hdr.set([82,73,70,70]); hdr[4]=size&255; hdr[5]=(size>>8)&255; hdr[6]=(size>>16)&255; hdr[7]=(size>>>24)&255; hdr.set([87,69,66,80],8);
+  return new Blob([hdr, ...chunks], { type:'image/webp' });
+}
+
+/* ---------- PSD writer (layered, RLE) ---------- */
+class BW {
+  constructor(){ this.parts = []; this.len = 0; }
+  bytes(a){ this.parts.push(a); this.len += a.length; }
+  u8(v){ this.bytes(Uint8Array.of(v & 255)); }
+  u16(v){ this.bytes(Uint8Array.of((v>>8)&255, v&255)); }
+  u32(v){ this.bytes(Uint8Array.of((v>>>24)&255, (v>>>16)&255, (v>>>8)&255, v&255)); }
+  i16(v){ this.u16(v & 0xFFFF); } i32(v){ this.u32(v >>> 0); }
+  ascii(s){ this.bytes(Uint8Array.from(s, c => c.charCodeAt(0) & 255)); }
+  zeros(n){ if (n > 0) this.bytes(new Uint8Array(n)); }
+}
+function packRow(row, n, out, p){
+  let i = 0;
+  while (i < n){
+    let j = i + 1; while (j < n && row[j] === row[i] && j - i < 128) j++;
+    const run = j - i;
+    if (run >= 3){ out[p++] = (257 - run) & 255; out[p++] = row[i]; i = j; continue; }
+    const st = i;
+    while (i < n && i - st < 128){ if (i + 2 < n && row[i] === row[i+1] && row[i] === row[i+2]) break; i++; }
+    out[p++] = i - st - 1; for (let k = st; k < i; k++) out[p++] = row[k];
+  }
+  return p;
+}
+function rlePlane(rgba, W, H, off){
+  const lens = new Uint8Array(2*H), buf = new Uint8Array(H*(W + Math.ceil(W/128) + 1)), row = new Uint8Array(W);
+  let p = 0;
+  for (let y = 0; y < H; y++){
+    let s = y*W*4 + off; for (let x = 0; x < W; x++){ row[x] = rgba[s]; s += 4; }
+    const st = p; p = packRow(row, W, buf, p); const L = p - st;
+    lens[2*y] = L >> 8; lens[2*y+1] = L & 255;
+  }
+  return { lens, data: buf.slice(0, p) };
+}
+function layerChannels(rgba, W, H){
+  return [[-1,3],[0,0],[1,1],[2,2]].map(([id,off]) => {
+    const { lens, data } = rlePlane(rgba, W, H, off);
+    const b = new Uint8Array(2 + lens.length + data.length); b[1] = 1; b.set(lens, 2); b.set(data, 2 + lens.length);
+    return { id, bytes: b };
+  });
+}
+function layerRecord(L, W, H){
+  const R = new BW();
+  R.i32(0); R.i32(0); R.i32(H); R.i32(W);
+  R.u16(L.chans.length); for (const c of L.chans){ R.i16(c.id); R.u32(c.bytes.length); }
+  R.ascii('8BIM'); R.ascii('norm'); R.u8(L.opacity); R.u8(0); R.u8(0x08 | (L.hidden ? 0x02 : 0)); R.u8(0);
+  const E = new BW(); E.u32(0); E.u32(0);
+  const an = L.name.replace(/[^\x20-\x7e]/g, '_').slice(0, 31);
+  E.u8(an.length); E.ascii(an); E.zeros((4 - ((1 + an.length) % 4)) % 4);
+  const uname = L.name.slice(0, 200);
+  const units = []; for (let i = 0; i < uname.length; i++) units.push(uname.charCodeAt(i));
+  const clen = 4 + 2*units.length, plen = clen + ((4 - clen % 4) % 4);
+  E.ascii('8BIM'); E.ascii('luni'); E.u32(plen); E.u32(units.length); units.forEach(u => E.u16(u)); E.zeros(plen - clen);
+  R.u32(E.len); E.parts.forEach(p => R.bytes(p));
+  return R;
+}
+async function exportPSD(){
+  const [W,H] = outSize(), R = makeRenderer(W, H);
+  const cv = mk(W,H), ctx = cv.getContext('2d', { willReadFrequently:true });
+  const grab = () => ctx.getImageData(0,0,W,H).data;
+  const layers = [];
+  ctx.clearRect(0,0,W,H); ctx.fillStyle = S.bg; ctx.fillRect(0,0,W,H);
+  layers.push({ name:'배경', hidden:false, opacity:255, chans: layerChannels(grab(), W, H) });
+  let jobs;
+  if (S.psdAll){
+    const frames = buildTimeline();
+    jobs = frames.map((f, i) => ({ i, name:`F${String(i+1).padStart(3,'0')} (${sec(f.delay)}초)`, draw:() => compose(ctx, f, R) }));
+  } else {
+    jobs = S.items.map((it, i) => ({ i, name:`${String(i+1).padStart(2,'0')} ${baseOf(it.name)} (${sec(it.hold)}초)`, draw:() => drawFitted(ctx, it, W, H) }));
+  }
+  const total = jobs.length + 2;
+  for (let k = jobs.length - 1; k >= 0; k--){
+    const j = jobs[k];
+    setStatus(`PSD 레이어 만드는 중… ${jobs.length - k}/${jobs.length}`); setProg((jobs.length - k)/total);
+    ctx.clearRect(0,0,W,H); j.draw();
+    layers.push({ name:j.name, hidden:j.i !== 0, opacity:255, chans: layerChannels(grab(), W, H) });
+    await yieldUI();
+  }
+  if (S.logo){
+    ctx.clearRect(0,0,W,H); drawLogo(ctx, W, H, 1);
+    layers.push({ name:'로고', hidden:false, opacity:Math.round(S.logoOp*2.55), chans: layerChannels(grab(), W, H) });
+  }
+  setStatus('PSD 합성 이미지 만드는 중…');
+  ctx.clearRect(0,0,W,H);
+  if (S.psdAll) renderFrame(ctx, buildTimeline()[0], R);
+  else { ctx.fillStyle = S.bg; ctx.fillRect(0,0,W,H); drawFitted(ctx, S.items[0], W, H); drawLogo(ctx, W, H); }
+  const comp = grab();
+  const planes = [0,1,2].map(off => rlePlane(comp, W, H, off));
+  const F = new BW();
+  F.ascii('8BPS'); F.u16(1); F.zeros(6); F.u16(3); F.u32(H); F.u32(W); F.u16(8); F.u16(3);
+  F.u32(0); F.u32(0);
+  const recs = layers.map(L => layerRecord(L, W, H));
+  let liLen = 2 + recs.reduce((s,r) => s + r.len, 0) + layers.reduce((s,L) => s + L.chans.reduce((t,c) => t + c.bytes.length, 0), 0);
+  const liPad = (4 - liLen % 4) % 4; liLen += liPad;
+  F.u32(4 + liLen + 4); F.u32(liLen); F.i16(layers.length);
+  recs.forEach(r => r.parts.forEach(p => F.bytes(p)));
+  layers.forEach(L => L.chans.forEach(c => F.bytes(c.bytes)));
+  F.zeros(liPad); F.u32(0);
+  F.u16(1); planes.forEach(p => F.bytes(p.lens)); planes.forEach(p => F.bytes(p.data));
+  setProg(1);
+  return new Blob(F.parts, { type:'image/vnd.adobe.photoshop' });
+}
+
+/* ---------- ZIP (store) ---------- */
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++){ let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b){ let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function makeZip(files){
+  const parts = [], cen = []; let off = 0;
+  const le = (n, bytes) => { const a = new Uint8Array(bytes); for (let i = 0; i < bytes; i++) a[i] = (n >>> (8*i)) & 255; return a; };
+  for (const f of files){
+    const nm = new TextEncoder().encode(f.name), crc = crc32(f.data), sz = f.data.length;
+    const lh = [le(0x04034b50,4), le(20,2), le(0x0800,2), le(0,2), le(0,2), le(0x21,2), le(crc,4), le(sz,4), le(sz,4), le(nm.length,2), le(0,2), nm];
+    const lhLen = lh.reduce((s,a) => s + a.length, 0);
+    cen.push([le(0x02014b50,4), le(20,2), le(20,2), le(0x0800,2), le(0,2), le(0,2), le(0x21,2), le(crc,4), le(sz,4), le(sz,4), le(nm.length,2), le(0,2), le(0,2), le(0,2), le(0,2), le(0,4), le(off,4), nm]);
+    parts.push(...lh, f.data); off += lhLen + sz;
+  }
+  const cflat = cen.flat(), csz = cflat.reduce((s,a) => s + a.length, 0);
+  const end = [le(0x06054b50,4), le(0,2), le(0,2), le(files.length,2), le(files.length,2), le(csz,4), le(off,4), le(0,2)];
+  return new Blob([...parts, ...cflat, ...end], { type:'application/zip' });
+}
+
+window.__gm = { S, buildTimeline, exportGIF, exportWebP, exportPSD, exportFitted, makeZip, importFiles, rebuild, syncUI, renderList, saveProject };
+syncUI(); rebuild();
+})();
+</script>
+</body>
+</html>
